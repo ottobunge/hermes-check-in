@@ -75,4 +75,15 @@ saved = mod.STATE.read_text()
 assert "second" in saved and "k2" in saved, saved
 mod._cancel("k2")
 
+# model-facing arm tool — the path the agent takes when asked to report periodically
+setattr(mod, "_bound_key", lambda: "k3")
+msg = mod._tool_arm({"interval": "15m", "prompt": "post a progress report; close when done"})
+assert "armed" in msg.lower(), msg
+assert timers[-1][:2] == ("k3", 900), timers[-1]
+assert "interval must look like" in mod._tool_arm({"interval": "3s", "prompt": "too fast"})
+assert "too short" in mod._tool_arm({"interval": "10m", "prompt": "x"})
+setattr(mod, "_bound_key", lambda: "")
+assert "no session bound" in mod._tool_arm({"interval": "10m", "prompt": "no key here"}), "must fail closed"
+mod._cancel("k3")
+
 print("check-in selfcheck: OK")

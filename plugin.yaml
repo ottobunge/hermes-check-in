@@ -1,8 +1,9 @@
 name: check-in
-version: "1.0.0"
+version: "1.1.0"
 description: Timed same-session check-ins — /check-in 10m "prompt" injects the prompt into this conversation after that much silence
 author: otto
 provides_tools:
+  - checkin_arm
   - checkin_close
 provides_hooks:
   - post_llm_call

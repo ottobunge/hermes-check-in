@@ -12,6 +12,8 @@ the `checkin_close` tool when the work is done.
                report and close the check-in"
 /check-in          # status + time to next fire
 /check-in stop     # close
+checkin_arm        # model-facing: the agent arms one itself when you say
+                   # "report every 10 minutes on this task"
 checkin_close      # model-facing close
 ```
 

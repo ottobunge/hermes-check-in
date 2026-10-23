@@ -3,6 +3,8 @@
 /check-in 10m "prompt"   arm a check-in for THIS conversation
 /check-in                show it
 /check-in stop           close it
+checkin_arm              model-facing: arm one itself when the user asks for
+                         periodic reports on a task
 checkin_close            model-facing close (called when the work is done)
 
 Each fire injects the prompt into the same session as a user turn, so the wake
@@ -155,6 +157,21 @@ def _handle(ctx, raw: str) -> str:
             f"Prompt: {prompt}\nClose with /check-in stop or the checkin_close tool.")
 
 
+def _tool_arm(args: dict, **_kwargs) -> str:
+    key = _bound_key()
+    if not key:
+        return "checkin_arm: no session bound — arm it from a chat turn."
+    seconds = _parse_interval(str((args or {}).get("interval", "")))
+    prompt = str((args or {}).get("prompt", "")).strip()
+    if not seconds:
+        return "checkin_arm: interval must look like '10m', '90s' or '2h' (minimum 10 seconds)."
+    if len(prompt) < 5:
+        return "checkin_arm: prompt too short — say what to report and what done looks like."
+    _arm(key, seconds, prompt)
+    return (f"Check-in armed: fires after {seconds}s of silence, resets on every turn, "
+            f"repeats until checkin_close.\nPrompt: {prompt}")
+
+
 def _on_post_llm_call(**_kwargs) -> None:
     key = _bound_key()
     if key:
@@ -170,6 +187,40 @@ def register(ctx) -> None:
                          args_hint='<interval> "<prompt>" | stop')
     ctx.register_command("check-in-stop", handler=lambda raw: _handle(ctx, "stop"),
                          description="Close the armed check-in")
+
+    ctx.register_tool(
+        name="checkin_arm",
+        toolset="check_in",
+        schema={
+            "name": "checkin_arm",
+            "description": (
+                "Arm a recurring check-in for THIS conversation. Use it when the user asks for "
+                "periodic reports or progress updates on a task ('report every 10 minutes', "
+                "'check in on this while it runs'). After each period of silence, `prompt` is "
+                "injected into this chat as a user turn, with the full conversation context. It "
+                "repeats until checkin_close. Arming replaces any existing check-in here."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "interval": {
+                        "type": "string",
+                        "description": "Silence before each fire: '10m', '90s', '2h' (minimum 10s).",
+                    },
+                    "prompt": {
+                        "type": "string",
+                        "description": (
+                            "What to do on each wake — the report to produce, and what counts as "
+                            "done so the wake can close the check-in itself."
+                        ),
+                    },
+                },
+                "required": ["interval", "prompt"],
+            },
+        },
+        handler=_tool_arm,
+        description="Arm a recurring same-session check-in (e.g. a progress report every 10 minutes)",
+    )
 
     ctx.register_tool(
         name="checkin_close",
