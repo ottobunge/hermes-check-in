@@ -1,0 +1,17 @@
+name: check-in
+version: "1.0.0"
+description: Timed same-session check-ins — /check-in 10m "prompt" injects the prompt into this conversation after that much silence
+author: otto
+provides_tools:
+  - checkin_close
+provides_hooks:
+  - post_llm_call
+provides_commands:
+  - check-in
+  - check-in-stop
+metadata:
+  hermes:
+    notes: >
+      Needs plugins.entries.check-in.allow_gateway_injection: true — the host refuses
+      plugin-triggered turns without that consent. Fires only into the session that
+      armed it (session_key is captured from the slash command context).
